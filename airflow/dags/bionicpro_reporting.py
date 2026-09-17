@@ -85,8 +85,8 @@ def bionicpro_reporting():
         execute_clickhouse(
             """
             ALTER TABLE user_report_mart DELETE
-            WHERE report_date >= toDate({window_start:DateTime})
-              AND report_date < toDate({window_end:DateTime})
+            WHERE report_date >= toDate({window_start:DateTime('UTC')})
+              AND report_date < toDate({window_end:DateTime('UTC')})
             SETTINGS mutations_sync = 1
             """,
             parameters,
@@ -109,8 +109,8 @@ def bionicpro_reporting():
             FROM emg_sensor_data AS sensor
             INNER JOIN crm_customers_stage AS customer FINAL
                 ON customer.customer_id = sensor.customer_id
-            WHERE sensor.signal_time >= {window_start:DateTime}
-              AND sensor.signal_time < {window_end:DateTime}
+            WHERE sensor.signal_time >= {window_start:DateTime('UTC')}
+              AND sensor.signal_time < {window_end:DateTime('UTC')}
             GROUP BY sensor.customer_id, report_date
             """,
             parameters,
@@ -121,7 +121,7 @@ def bionicpro_reporting():
                 (pipeline, report_date, processed_at)
             VALUES (
                 'bionicpro_reporting',
-                toDate({window_start:DateTime}),
+                toDate({window_start:DateTime('UTC')}),
                 now()
             )
             """,
@@ -135,18 +135,18 @@ def bionicpro_reporting():
                 'bionicpro_reporting',
                 if(
                     count() = 0,
-                    {window_start:DateTime},
+                    {window_start:DateTime('UTC')},
                     least(
                         argMax(processed_from, updated_at),
-                        {window_start:DateTime}
+                        {window_start:DateTime('UTC')}
                     )
                 ),
                 if(
                     count() = 0,
-                    {window_end:DateTime},
+                    {window_end:DateTime('UTC')},
                     greatest(
                         argMax(processed_through, updated_at),
-                        {window_end:DateTime}
+                        {window_end:DateTime('UTC')}
                     )
                 ),
                 now()
