@@ -1,2 +1,13 @@
-/postgres-keycloak-data
-2024__yandex-architecture-sso.code-workspace
+.env
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+node_modules/
+frontend/build/
+airflow/logs/
+postgres-*-data/
+clickhouse-data/
