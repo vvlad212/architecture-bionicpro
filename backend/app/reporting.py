@@ -1,6 +1,6 @@
 import json
 from dataclasses import asdict
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime
 from typing import Any, Protocol
 
 import httpx
@@ -40,30 +40,29 @@ class ClickHouseReportRepository:
 
     async def processed_through(self, start_date: date,
                                 end_date: date) -> datetime | None:
+        del start_date
         rows = await self._query(
             """
-            SELECT
-                max(report_date) AS latest_date,
-                countDistinct(report_date) AS processed_days
-            FROM reporting_processed_days FINAL
+            SELECT processed_through
+            FROM reporting_state FINAL
             WHERE pipeline = 'bionicpro_reporting'
-              AND report_date BETWEEN {start_date:Date} AND {end_date:Date}
-            HAVING processed_days = dateDiff(
-                'day', {start_date:Date}, {end_date:Date}
-            ) + 1
+              AND processed_through >=
+                  toDateTime({end_date:Date}, 'UTC') + INTERVAL 1 DAY
+            LIMIT 1
             FORMAT JSONEachRow
             """,
             {
-                "param_start_date": start_date.isoformat(),
                 "param_end_date": end_date.isoformat(),
             },
         )
         if not rows:
             return None
-        latest_date = date.fromisoformat(str(rows[0]["latest_date"]))
-        return datetime.combine(
-            latest_date + timedelta(days=1), time.min, tzinfo=UTC
+        processed_through = datetime.fromisoformat(
+            str(rows[0]["processed_through"])
         )
+        if processed_through.tzinfo is None:
+            processed_through = processed_through.replace(tzinfo=UTC)
+        return processed_through
 
     async def daily_rows(self, customer_id: int, start_date: date,
                          end_date: date) -> list[ReportRow]:

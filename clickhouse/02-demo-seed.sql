@@ -22,7 +22,10 @@ INNER JOIN bionicpro.crm_customers_stage AS customer FINAL
     ON customer.customer_id = sensor.customer_id
 GROUP BY sensor.customer_id, report_date;
 
-INSERT INTO bionicpro.reporting_state (pipeline, processed_from, processed_through) VALUES ('bionicpro_reporting', toStartOfDay(now() - INTERVAL 2 DAY), toStartOfDay(now()));
+-- The demo UI requests the previous seven days by default and the API allows
+-- up to 31 days. Mark the full allowed historical window as processed so a
+-- clean checkout can download a report before the first scheduled DAG runs.
+INSERT INTO bionicpro.reporting_state (pipeline, processed_from, processed_through) VALUES ('bionicpro_reporting', toStartOfDay(now() - INTERVAL 31 DAY), toStartOfDay(now()));
 
 INSERT INTO bionicpro.reporting_processed_days
     (pipeline, report_date, processed_at)
@@ -30,4 +33,4 @@ SELECT
     'bionicpro_reporting',
     toDate(now()) - number - 1,
     now()
-FROM numbers(2);
+FROM numbers(31);
